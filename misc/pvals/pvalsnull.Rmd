@@ -1,0 +1,171 @@
+---
+title: "Posterior probability of null hypotheses given a statistically significant result"
+author: "Shravan Vasishth"
+date: "4/2/2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+The background for this post is the following paper entitled *The statistical significance filter leads to overoptimistic expectations of replicability* (Vasishth, Mertzen, J\"ager, Gelman, 2017, under review): https://psyarxiv.com/hbqcw
+
+Abstract:
+
+    Treating a result as newsworthy, i.e., publishable, because the p-value is less than 0.05 leads to overoptimistic expectations of replicability. The underlying cause of these overoptimistic expectations is Type M(agnitude) error (Gelman & Carlin, 2014): when underpowered studies yield significant results, the effect size estimates are invariably exaggerated and noisy. These effects get published, leading to an illusion that the reported findings are robust and replicable. For the first time in psycholinguistics, we demonstrate the adverse consequences of this statistical significance filter. We do this by carrying out direct replication attempts of published results from a recent paper. Six experiments (self-paced reading and eyetracking, 168 participants in total) show that the published (statistically significant) claims are so noisy that even non-significant results are fully compatible with them. We also demonstrate the stark contrast between these small-sample studies and a larger-sample study (100 participants); the latter yields much less noisy estimates but also a much smaller magnitude of the effect of interest. The small magnitude looks less compelling but is more realistic. We suggest that psycholinguistics (i) move its focus away from statistical significance, (ii) attend instead to the precision of their estimates, and (iii) carry out direct replications in order to demonstrate the existence of an effect.
+
+Here, I comment on what p-values tell us about the posterior probability of the null being true. We are going to compute the posterior probability of the null being true given a significant effect. This post is in response to a comment on the above paper that the p-value tells us about the posterior probability of the null being true. I show that it doesn't really.
+
+
+# Introduction
+
+We will take a Bayesian perspective and assume that the null hypothesis $H_0$ is a random variable, and just as a coin has heads and tails as possible outcomes, the null hypothesis can have two values as possible outcomes, true and false, where true counts as success (this is an arbitrary decision).  So, we can talk about the probability of success, $\theta$, and assume that a success or failure is generated from a Bernoulli process:
+
+$H_0 \sim Bernoulli(\theta)$
+
+Assume a prior on $\theta \sim Beta(60,5)$; this assumes that the prior probability of the null being true is between 0.85 and 0.97 with probability 95\% (roughly), with mean probability 0.92. 
+
+```{r}
+h0<-rbeta(10000,shape1 = 60, shape2 = 5)
+mean(h0)
+quantile(h0,prob=c(0.025,0.975))
+hist(h0,freq=FALSE,xlab="beta(60,5)",main="Pr(H0 true)")
+```
+
+Note that I am not saying that the probability of the true mean being $\mu=0$ is this high. I am saying that my prior belief that the null hypothesis distribution is $Normal(0,\sigma)$ (just using the normal distribution as an example here) is that high. For example, in reading time data, I could assume that the difference between two conditions is $Normal(0,5)$ on the milliseconds scale. This is saying that it is 95\% probable that the true mean lies between -10 and 10 ms, with mean 0. This could easily have a high prior probability of being true in many cases. (If you are testing a null hypothesis with a very low prior probability of being true, ask yourself why you are doing that in the first place. I'm looking at you Amy Cuddy, and Bem.)
+
+We can use Bayes' rule to figure out the posterior probability of the null being true given a significant result at a particular Type I error ($\alpha$), and given some Type II error ($\beta$):
+
+$Pr(H_0 true | sig) = \frac{Pr(sig|H_0 true)\times Pr(H_0 true)}{Pr(sig)}$
+
+where: 
+
+$Pr(sig) = Pr(sig |  H_0 true) Pr(H_0 true) + Pr(sig | H_0 false) Pr(H_0 false) = \alpha \times Pr(H_0 true) + (1-\beta) \times (1-Pr(H_0 true))$
+
+
+This is because $Pr(sig |  H_0 true)= \alpha$ and $Pr(sig | H_0 false) = 1-\beta = power$.
+
+So, $Pr(H_0 true | sig)$ is really a function of three things:
+
+- power $(1-\beta)$
+- prior probability of null being true ($\theta$)
+- Type I error $\alpha$
+
+We will investigate how the posterior probability of the null being true given a significant result changes relative to these parameters.
+
+First, define a plotting function needed below to display posterior probability of null hypothesis given a significant result:
+
+```{r}
+plotpost<-function(post=post,
+                   xlabel="theta~Beta(5,60),alpha=0.05,beta=0.90",
+                   mainlabel="Posterior probability of null true \n given sig result",
+                   yloc=0.5,xlimit=c(0,0.5)
+                   ){
+hist(post,freq=FALSE,xlab=xlabel,
+     main=mainlabel,xlim=xlimit,ylim=c(0,15))
+postq<-quantile(post,probs=c(0.025,0.975))
+arrows(x0=postq[1],x1=postq[2],y0=yloc,y1=yloc,length=0,angle=90)
+}
+```
+
+## Simulation 1 (mean Pr(H0)=.92, Type I error 0.05)
+
+Let Type I error be $\alpha = 0.05$ and Type II error be $\beta = 0.90$. So, we have power at $1-\beta=0.10$.
+
+We can simulate the posterior distribution of $H_0$ given a significant result, i.e., $p<0.05$. The prior distribution is plotted alongside in red/pink (can't tell which it is).
+
+```{r}
+nsim<-100000
+post<-rep(NA,nsim)
+alpha <- 0.05
+beta <- 0.90
+for(i in 1:nsim){
+  theta<-rbeta(1,shape1 = 60,shape2 = 5)
+  post[i]<-alpha*theta/(alpha*theta + (1-beta)*(1-theta))
+}
+
+plotpost(post,xlabel="theta~Beta(60,5),alpha=0.05,beta=0.90",xlimit=c(0.2,1),yloc=2)
+hist(h0,freq=FALSE,add=TRUE,col=rgb(1,0,0,1/4))
+```
+
+So, getting a significant result hardly shifts our belief regarding the null.
+
+## Simulation 2 (mean Pr(H0)=.92, Type I error 0.01)
+
+Now decrease Type II error to 0.01:
+
+```{r}
+post<-rep(NA,nsim)
+alpha <- 0.01
+beta <- 0.90
+for(i in 1:nsim){
+  theta<-rbeta(1,shape1 = 60,shape2 = 5)
+  post[i]<-alpha*theta/(alpha*theta + (1-beta)*(1-theta))
+}
+plotpost(post,yloc=2,
+         xlabel="theta~Beta(60,5),
+         alpha=0.01,beta=0.90",xlimit=c(0,1))
+hist(h0,freq=FALSE,add=TRUE,col=rgb(1,0,0,1/4))
+```
+
+So, lowering Type I error shifts our posterior probability of the null being true a bit more but not enough to get excited. Would you discard a null if the posterior probability of it being true was between 40 and 80\% after you got a significant result? I wouldn't. But that is exactly what we do.
+
+
+# Simulation 3 (mean Pr(H0)=.92, Type I error 0.05)
+
+We can also introduce uncertainty about power (or rather, Type II error) into the picture by setting our prior on $\beta \sim Beta(10,4)$, so that the Type II error is around 70\%:
+
+```{r}
+beta<-rbeta(10000,shape1 = 10,shape2 = 4)
+mean(beta)
+quantile(beta,prob=c(0.025,0.975))
+hist(beta,freq=FALSE,xlab="beta(10,4)",main="Prior on Type II error")
+```
+
+```{r}
+alpha <- 0.05
+#beta <- 0.90
+for(i in 1:nsim){
+  theta<-rbeta(1,shape1 = 60,shape2 = 5)
+  beta <- rbeta(1,shape1 = 10,shape2 = 4)
+  ## beta can't be more than 0.95
+  if(beta>0.95){
+    beta=0.95
+    } 
+  post[i]<-alpha*theta/(alpha*theta + (1-beta)*(1-theta))
+}
+
+plotpost(post,xlabel="theta~beta(60,5), alpha=0.05,beta~Beta(10,4)",xlimit=c(0,1))
+hist(h0,freq=FALSE,add=TRUE,col=rgb(1,0,0,1/4))
+```
+
+Not much change in posterior of null being true.
+
+# Simulation 4 (mean Pr(H0)=.92, Type I error 0.01)
+
+Now, what happens if we lower Type I error to 0.01?
+
+```{r}
+alpha <- 0.01
+#beta <- 0.90
+for(i in 1:nsim){
+  theta<-rbeta(1,shape1 = 60,shape2 = 5)
+  beta <- rbeta(1,shape1 = 10,shape2 = 4)
+  ## beta can't be more than 0.95
+  if(beta>0.95){
+    beta=0.95
+    } 
+  post[i]<-alpha*theta/(alpha*theta + (1-beta)*(1-theta))
+}
+
+plotpost(post,xlabel="theta~beta(60,5), alpha=0.01,beta~Beta(10,4)",xlimit=c(0,1))
+hist(h0,freq=FALSE,add=TRUE,col=rgb(1,0,0,1/4))
+
+```
+
+Now the posterior shifts quite a bit more, but with wide uncertainty. I would be quite unhappy rejecting the null if the posterior probability was between 20 and 60\%.
+
+# Conclusion
+
+The posterior probability of the null being true doesn't change in any meaningful way, even if we change Type I error to 0.01. If we lower Type I error to 0.001, this will lead to a sharp reduction in posterior probability of the null being true (exercise), but such a low Type I error will also lead to a further fall in power. So the probability of getting a significant effect will fall even more. Reducing Type I error to 0.001 will basically make most papers unpublishable if the statistical significance filter is in play.
