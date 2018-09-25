@@ -1,4 +1,6 @@
-You can download the data and code for this paper from the following link. This is a password protected file that only the editor and reviewers have access to:
-
-[click here](https://www.ling.uni-potsdam.de/~vasishth/code/StatSigFilter.zip)
-
+ - code: I used purl to extract R + Stan code from the paper.If there are compilation issues, please contact me (vasishth). Some data used in one of the appendices is not released in this repo, as it belongs to another paper.
+ - data: contains data from our seven studies, and original LK13 TRT data from their two studies.
+ - paper: VMJG2018.pdf is the full paper as accepted by the Journal of Memory and Language, *without* all the additional mistakes and typesetting errors that Elsevier's production staff added to the paper, for a cost of 1700 Euros.
+ - R: R functions I wrote and used in the paper.
+ - PreregistrationExpt7: Our expt 7 was preregistered.
+ - talks: contains slides from various talks I gave.
