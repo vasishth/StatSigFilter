@@ -328,7 +328,7 @@ multiplot(lkjplot2,lkjplot4,cols=2)
 ##### ORIGINAL LEVY KELLER DATA EXPERIMENT 1 #####
 # CRITICAL REGION (REGION 7)  #
 
-reading_time <- read.table('../data/OrigLevyKellerData/prediction_experiment_data/experiment1/lmr/results/exp1_tt_r.res', header=TRUE)
+reading_time <- read.table('../data/exp1_tt_r.res', header=TRUE)
 #head(reading_time)
 
 condition<-ifelse(reading_time$dat=="sub" & reading_time$adj=="sub","a",
@@ -412,7 +412,7 @@ LKE1post_res<-stan_results(m=LKE1post,params=c("Dat","Adj","DatxAdj"))
 
 # CRITICAL REGION  (REGION 8) #
 
-reading_time <- read.table('../data/OrigLevyKellerData/prediction_experiment_data/experiment2/lmr/results/exp3_tt_r.res', header=TRUE)
+reading_time <- read.table('../data/exp3_tt_r.res', header=TRUE)
 
 
 condition<-ifelse(reading_time$dat=="sub" & reading_time$adj=="sub","a",
